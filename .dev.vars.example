@@ -1,0 +1,10 @@
+TELEGRAM_BOT_TOKEN=123456:replace-me
+TELEGRAM_WEBHOOK_SECRET=replace-with-long-random-secret
+OPENAI_API_KEY=sk-replace-me
+ALLOWED_TELEGRAM_USER_ID=123456789
+
+# Optional overrides
+TIMEZONE=Europe/Berlin
+OPENAI_TEXT_MODEL=gpt-5.2
+OPENAI_IMAGE_MODEL=gpt-image-1.5
+TELEGRAM_ALLOWED_REACTIONS=❤️,🙏,👏,🎉,🤩,🥰,👌,🫶,💯,🔥
