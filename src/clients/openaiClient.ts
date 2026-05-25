@@ -1,4 +1,4 @@
-import { fetchJson } from "../httpClient";
+import { fetchArrayBuffer, fetchJson } from "../httpClient";
 
 interface OpenAiTextResponse {
   output_text?: string;
@@ -15,6 +15,12 @@ interface OpenAiImageResponse {
     b64_json?: string;
     url?: string;
   }>;
+}
+
+export interface GeneratePosterImageOptions {
+  size?: string;
+  timeoutMs?: number;
+  retries?: number;
 }
 
 export class OpenAiClient {
@@ -54,7 +60,10 @@ export class OpenAiClient {
     }
   }
 
-  async generatePosterImage(prompt: string): Promise<Uint8Array> {
+  async generatePosterImage(prompt: string, options: GeneratePosterImageOptions = {}): Promise<Uint8Array> {
+    const timeoutMs = options.timeoutMs ?? 180_000;
+    const retries = options.retries ?? 1;
+
     const response = await fetchJson<OpenAiImageResponse>(
       "https://api.openai.com/v1/images/generations",
       {
@@ -63,10 +72,10 @@ export class OpenAiClient {
         body: JSON.stringify({
           model: this.imageModel,
           prompt,
-          size: "1024x1536"
+          size: options.size ?? "1024x1536"
         })
       },
-      { timeoutMs: 120_000, retries: 1 }
+      { timeoutMs, retries }
     );
 
     const first = response.data?.[0];
@@ -74,7 +83,11 @@ export class OpenAiClient {
       return base64ToBytes(first.b64_json);
     }
 
-    throw new Error("OpenAI image response did not include b64_json data");
+    if (first?.url) {
+      return new Uint8Array(await fetchArrayBuffer(first.url, { method: "GET" }, { timeoutMs, retries }));
+    }
+
+    throw new Error("OpenAI image response did not include b64_json or url data");
   }
 
   private headers(): Record<string, string> {
