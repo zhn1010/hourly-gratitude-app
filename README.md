@@ -70,7 +70,7 @@ pnpm wrangler secret put ALLOWED_TELEGRAM_USER_ID
 For local development:
 
 ```sh
-cp .dev.vars.example .dev.vars
+cp .dev.vars.example .env
 ```
 
 Then edit `.dev.vars`.
@@ -141,6 +141,7 @@ pnpm run set-webhook
 ## Troubleshooting
 
 - No Telegram updates: verify the webhook URL, `TELEGRAM_WEBHOOK_SECRET`, and Worker route `/telegram/webhook`.
+- `Cannot read properties of undefined (reading 'prepare')`: the D1 binding is missing or misnamed. In `wrangler.jsonc`, D1 must use `"binding": "DB"` and R2 must use `"binding": "POSTERS"`, then redeploy.
 - Bot ignores messages: confirm `ALLOWED_TELEGRAM_USER_ID` matches your numeric Telegram user ID.
 - Nudges do not arrive: check Cloudflare scheduled event logs and confirm the current local time is inside `08:00-21:59`.
 - Duplicate nudges: D1 unique keys should prevent duplicates; inspect the `nudges` table for existing pending/failed rows.

@@ -3,6 +3,8 @@ import type { AppConfig, Env } from "./types";
 const DEFAULT_REACTIONS = ["❤️", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "🫶", "💯", "🔥"];
 
 export function getConfig(env: Env): AppConfig {
+  requireBindings(env);
+
   const allowedTelegramUserId = Number(env.ALLOWED_TELEGRAM_USER_ID);
   if (!Number.isSafeInteger(allowedTelegramUserId)) {
     throw new Error("ALLOWED_TELEGRAM_USER_ID must be a numeric Telegram user ID");
@@ -22,6 +24,16 @@ export function getConfig(env: Env): AppConfig {
     openAiImageModel: env.OPENAI_IMAGE_MODEL ?? "gpt-image-1.5",
     allowedReactions: parseReactions(env.TELEGRAM_ALLOWED_REACTIONS)
   };
+}
+
+function requireBindings(env: Env): void {
+  if (!env.DB) {
+    throw new Error("D1 binding DB is missing. Set d1_databases[0].binding to \"DB\" in wrangler.jsonc and redeploy.");
+  }
+
+  if (!env.POSTERS) {
+    throw new Error("R2 binding POSTERS is missing. Set r2_buckets[0].binding to \"POSTERS\" in wrangler.jsonc and redeploy.");
+  }
 }
 
 function requireEnv(value: string | undefined, name: string): string {

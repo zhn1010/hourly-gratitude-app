@@ -1,35 +1,35 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hourly-gratitude-bot",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-05-25",
-  "observability": {
-    "enabled": true
-  },
-  "vars": {
-    "TIMEZONE": "Europe/Berlin",
-    "OPENAI_TEXT_MODEL": "gpt-5.2",
-    "OPENAI_IMAGE_MODEL": "gpt-image-2",
-    "TELEGRAM_ALLOWED_REACTIONS": "❤️,🙏,👏,🎉,🤩,🥰,👌,🫶,💯,🔥"
-  },
-  "triggers": {
-    "crons": [
-      "50,55,58 6-20 * * *",
-      "0 20,21 * * *"
-    ]
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "gratitude_bot",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "POSTERS",
-      "bucket_name": "gratitude-posters"
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hourly-gratitude-bot",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-05-25",
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"TIMEZONE": "Europe/Berlin",
+		"OPENAI_TEXT_MODEL": "gpt-5.2",
+		"OPENAI_IMAGE_MODEL": "gpt-image-2",
+		"TELEGRAM_ALLOWED_REACTIONS": "❤️,🙏,👏,🎉,🤩,🥰,👌,🫶,💯,🔥"
+	},
+	"triggers": {
+		"crons": [
+			"50,55,58 6-20 * * *",
+			"0 20,21 * * *"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "gratitude_bot",
+			"database_id": "5fe21a0a-9e4b-42bf-8d36-ad4ab98db301",
+			"migrations_dir": "migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "POSTERS",
+			"bucket_name": "gratitude-posters"
+		}
+	]
 }
