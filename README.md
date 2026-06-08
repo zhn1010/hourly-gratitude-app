@@ -81,6 +81,19 @@ Then edit `.dev.vars`.
 pnpm run deploy
 ```
 
+## Deploy On Push
+
+Pushes to `main` run `.github/workflows/deploy.yml`. The workflow installs dependencies, runs `pnpm run typecheck`, runs `pnpm test`, applies remote D1 migrations, and deploys with Wrangler.
+
+Create these GitHub repository secrets:
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+The Cloudflare API token must be allowed to deploy Workers and manage the configured D1 database. Production bot secrets still live in Cloudflare and must be set once with `pnpm wrangler secret put ...`; GitHub Actions does not upload `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `OPENAI_API_KEY`, or `ALLOWED_TELEGRAM_USER_ID`.
+
 After deployment, set the Telegram webhook. Replace `https://your-worker.example.workers.dev` with the deployed Worker URL:
 
 ```sh
