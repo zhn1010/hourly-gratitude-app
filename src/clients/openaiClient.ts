@@ -1,4 +1,5 @@
 import { fetchArrayBuffer, fetchJson } from "../httpClient";
+import type { PosterImageQuality } from "../types";
 
 interface OpenAiTextResponse {
   output_text?: string;
@@ -19,8 +20,16 @@ interface OpenAiImageResponse {
 
 export interface GeneratePosterImageOptions {
   size?: string;
+  quality?: PosterImageQuality;
   timeoutMs?: number;
   retries?: number;
+}
+
+export interface GenerateJsonOptions {
+  model?: string;
+  maxOutputTokens?: number;
+  reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  verbosity?: "low" | "medium" | "high";
 }
 
 export class OpenAiClient {
@@ -30,16 +39,24 @@ export class OpenAiClient {
     private readonly imageModel: string
   ) {}
 
-  async generateJson<T>(input: string, schemaName: string, schema: Record<string, unknown>): Promise<T> {
+  async generateJson<T>(
+    input: string,
+    schemaName: string,
+    schema: Record<string, unknown>,
+    options: GenerateJsonOptions = {}
+  ): Promise<T> {
     const response = await fetchJson<OpenAiTextResponse>(
       "https://api.openai.com/v1/responses",
       {
         method: "POST",
         headers: this.headers(),
         body: JSON.stringify({
-          model: this.textModel,
+          model: options.model ?? this.textModel,
           input,
+          ...(options.maxOutputTokens ? { max_output_tokens: options.maxOutputTokens } : {}),
+          ...(options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {}),
           text: {
+            ...(options.verbosity ? { verbosity: options.verbosity } : {}),
             format: {
               type: "json_schema",
               name: schemaName,
@@ -72,7 +89,8 @@ export class OpenAiClient {
         body: JSON.stringify({
           model: this.imageModel,
           prompt,
-          size: options.size ?? "1024x1536"
+          size: options.size ?? "1024x1536",
+          quality: options.quality ?? "auto"
         })
       },
       { timeoutMs, retries }

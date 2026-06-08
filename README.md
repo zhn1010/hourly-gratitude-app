@@ -121,10 +121,16 @@ Defaults are configured in `wrangler.jsonc`:
 
 ```jsonc
 "OPENAI_TEXT_MODEL": "gpt-5.2",
-"OPENAI_IMAGE_MODEL": "gpt-image-1.5"
+"OPENAI_FAST_TEXT_MODEL": "gpt-5.4-nano",
+"OPENAI_POSTER_TEXT_MODEL": "gpt-5.4-mini",
+"OPENAI_IMAGE_MODEL": "gpt-image-2",
+"POSTER_IMAGE_QUALITY": "medium",
+"POSTER_IMAGE_SIZE": "1024x1536"
 ```
 
-The image model is configurable. If your OpenAI account supports `gpt-image-2`, set `OPENAI_IMAGE_MODEL` to `gpt-image-2`.
+`OPENAI_TEXT_MODEL` remains the backward-compatible fallback when a task-specific text model is not set. Reactions and nudges use `OPENAI_FAST_TEXT_MODEL`; daily poster planning uses `OPENAI_POSTER_TEXT_MODEL`.
+
+Poster image quality is pinned to `medium` to avoid `auto` selecting a high-cost output tier. If poster cost is still too high, set `POSTER_IMAGE_QUALITY` to `low`; valid values are `low`, `medium`, `high`, and `auto`.
 
 ## Useful Commands
 

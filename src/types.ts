@@ -7,9 +7,15 @@ export interface Env {
   ALLOWED_TELEGRAM_USER_ID: string;
   TIMEZONE?: string;
   OPENAI_TEXT_MODEL?: string;
+  OPENAI_FAST_TEXT_MODEL?: string;
+  OPENAI_POSTER_TEXT_MODEL?: string;
   OPENAI_IMAGE_MODEL?: string;
+  POSTER_IMAGE_QUALITY?: string;
+  POSTER_IMAGE_SIZE?: string;
   TELEGRAM_ALLOWED_REACTIONS?: string;
 }
+
+export type PosterImageQuality = "low" | "medium" | "high" | "auto";
 
 export interface AppConfig {
   timezone: "Europe/Berlin";
@@ -18,7 +24,11 @@ export interface AppConfig {
   allowedTelegramUserId: number;
   openAiApiKey: string;
   openAiTextModel: string;
+  openAiFastTextModel: string;
+  openAiPosterTextModel: string;
   openAiImageModel: string;
+  posterImageQuality: PosterImageQuality;
+  posterImageSize: string;
   allowedReactions: string[];
 }
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { OpenAiClient } from "../src/clients/openaiClient";
 import { LlmService } from "../src/services/llmService";
-import type { AppConfig, StoredGratitudeEntry } from "../src/types";
+import type { AppConfig, PosterImageQuality, StoredGratitudeEntry } from "../src/types";
 
 declare const process: {
   env: Record<string, string | undefined>;
@@ -53,6 +53,8 @@ await loadDotEnv(".dev.vars");
 
 const openAiApiKey = requireEnv("OPENAI_API_KEY");
 const textModel = process.env.OPENAI_TEXT_MODEL ?? "gpt-5.2";
+const fastTextModel = process.env.OPENAI_FAST_TEXT_MODEL ?? textModel;
+const posterTextModel = process.env.OPENAI_POSTER_TEXT_MODEL ?? textModel;
 const localDate = process.env.REACTION_SAMPLE_DATE ?? getBerlinDate(new Date());
 const sampleCount = Number(process.env.REACTION_SAMPLE_COUNT ?? 10);
 const outDir = process.env.REACTION_SAMPLE_OUT_DIR ?? "tmp/reaction-sample";
@@ -68,7 +70,11 @@ const config: AppConfig = {
   allowedTelegramUserId: Number(process.env.ALLOWED_TELEGRAM_USER_ID ?? 1),
   openAiApiKey,
   openAiTextModel: textModel,
+  openAiFastTextModel: fastTextModel,
+  openAiPosterTextModel: posterTextModel,
   openAiImageModel: process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2",
+  posterImageQuality: parsePosterImageQuality(process.env.POSTER_IMAGE_QUALITY),
+  posterImageSize: process.env.POSTER_IMAGE_SIZE ?? "1024x1536",
   allowedReactions
 };
 
@@ -155,6 +161,14 @@ function requireEnv(name: string): string {
     throw new Error(`${name} is required. Set it in your shell, .env, or .dev.vars.`);
   }
   return value;
+}
+
+function parsePosterImageQuality(value: string | undefined): PosterImageQuality {
+  const quality = value?.trim() || "medium";
+  if (quality !== "low" && quality !== "medium" && quality !== "high" && quality !== "auto") {
+    throw new Error("POSTER_IMAGE_QUALITY must be one of: low, medium, high, auto");
+  }
+  return quality;
 }
 
 function toStoredEntry(sample: PersianSample, localDate: string, index: number): StoredGratitudeEntry {

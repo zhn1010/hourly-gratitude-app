@@ -9,7 +9,11 @@ const config: AppConfig = {
   allowedTelegramUserId: 123,
   openAiApiKey: "key",
   openAiTextModel: "model",
+  openAiFastTextModel: "fast-model",
+  openAiPosterTextModel: "poster-model",
   openAiImageModel: "image",
+  posterImageQuality: "medium",
+  posterImageSize: "1024x1536",
   allowedReactions: ["🙏", "🎉"]
 };
 

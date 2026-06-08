@@ -15,7 +15,7 @@ export class LlmService {
     private readonly config: AppConfig
   ) {}
 
-  async selectReaction(entryText: string, todayEntries: StoredGratitudeEntry[]): Promise<string> {
+  async selectReaction(entryText: string, _todayEntries: StoredGratitudeEntry[]): Promise<string> {
     const prompt = [
       "Select exactly one Telegram emoji reaction for this gratitude message.",
       `Allowed reactions: ${this.config.allowedReactions.join(" ")}`,
@@ -30,12 +30,15 @@ export class LlmService {
       "Do not overuse 🙏. Pick 🙏 only when it is clearly the best emotional fit.",
       "Return only an emoji from the allowed reactions list.",
       "",
-      `Message: ${entryText}`,
-      "",
-      formatEntries(todayEntries, "Earlier today")
+      `Message: ${entryText}`
     ].join("\n");
 
-    const result = await this.openAi.generateJson<ReactionResult>(prompt, "reaction_choice", reactionSchema);
+    const result = await this.openAi.generateJson<ReactionResult>(prompt, "reaction_choice", reactionSchema, {
+      model: this.config.openAiFastTextModel,
+      reasoningEffort: "none",
+      maxOutputTokens: 64,
+      verbosity: "low"
+    });
     return this.config.allowedReactions.includes(result.emoji) ? result.emoji : "🙏";
   }
 
@@ -46,10 +49,15 @@ export class LlmService {
       "Match the dominant language of today's entries. If unclear, use English.",
       `Current local time: ${String(localHour).padStart(2, "0")}:${String(localMinute).padStart(2, "0")} Europe/Berlin.`,
       "",
-      formatEntries(todayEntries, "Today's gratitude entries so far")
+      formatEntries(lastEntries(todayEntries, 3), "Recent gratitude entries")
     ].join("\n");
 
-    const result = await this.openAi.generateJson<NudgeResult>(prompt, "gratitude_nudge", nudgeSchema);
+    const result = await this.openAi.generateJson<NudgeResult>(prompt, "gratitude_nudge", nudgeSchema, {
+      model: this.config.openAiFastTextModel,
+      reasoningEffort: "none",
+      maxOutputTokens: 96,
+      verbosity: "low"
+    });
     return cleanSingleLine(result.message, fallbackNudge(localMinute));
   }
 
@@ -61,10 +69,15 @@ export class LlmService {
       "Caption must be concise and suitable for Telegram.",
       `Local date: ${localDate}`,
       "",
-      formatEntries(entries, "Entries")
+      formatEntries(truncateEntryText(entries, 180), "Entries")
     ].join("\n");
 
-    const result = await this.openAi.generateJson<PosterPlanResult>(prompt, "daily_poster_plan", posterPlanSchema);
+    const result = await this.openAi.generateJson<PosterPlanResult>(prompt, "daily_poster_plan", posterPlanSchema, {
+      model: this.config.openAiPosterTextModel,
+      reasoningEffort: "none",
+      maxOutputTokens: 1200,
+      verbosity: "low"
+    });
     return {
       summary: cleanSingleLine(result.summary, fallbackSummary(entries)),
       image_prompt: result.image_prompt.trim() || fallbackPosterPrompt(localDate, entries),
@@ -113,6 +126,17 @@ function formatEntries(entries: StoredGratitudeEntry[], title: string): string {
     `${title}:`,
     ...entries.map((entry) => `- ${String(entry.local_hour).padStart(2, "0")}:00 ${entry.text}`)
   ].join("\n");
+}
+
+function lastEntries(entries: StoredGratitudeEntry[], count: number): StoredGratitudeEntry[] {
+  return entries.slice(-count);
+}
+
+function truncateEntryText(entries: StoredGratitudeEntry[], maxLength: number): StoredGratitudeEntry[] {
+  return entries.map((entry) => ({
+    ...entry,
+    text: entry.text.length > maxLength ? `${entry.text.slice(0, maxLength).trimEnd()}...` : entry.text
+  }));
 }
 
 function cleanSingleLine(value: string, fallback: string): string {

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { OpenAiClient } from "../src/clients/openaiClient";
 import { LlmService } from "../src/services/llmService";
-import type { AppConfig, StoredGratitudeEntry } from "../src/types";
+import type { AppConfig, PosterImageQuality, StoredGratitudeEntry } from "../src/types";
 
 declare const process: {
   env: Record<string, string | undefined>;
@@ -50,10 +50,13 @@ await loadDotEnv(".dev.vars");
 
 const openAiApiKey = requireEnv("OPENAI_API_KEY");
 const textModel = process.env.OPENAI_TEXT_MODEL ?? "gpt-5.2";
+const fastTextModel = process.env.OPENAI_FAST_TEXT_MODEL ?? textModel;
+const posterTextModel = process.env.OPENAI_POSTER_TEXT_MODEL ?? textModel;
 const imageModel = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 const localDate = process.env.POSTER_SAMPLE_DATE ?? getBerlinDate(new Date());
 const outDir = process.env.POSTER_SAMPLE_OUT_DIR ?? "tmp/poster-sample";
 const imageSize = process.env.POSTER_IMAGE_SIZE ?? "1024x1536";
+const imageQuality = parsePosterImageQuality(process.env.POSTER_IMAGE_QUALITY);
 const imageTimeoutMs = Number(process.env.POSTER_IMAGE_TIMEOUT_MS ?? 300_000);
 
 const config: AppConfig = {
@@ -63,7 +66,11 @@ const config: AppConfig = {
   allowedTelegramUserId: Number(process.env.ALLOWED_TELEGRAM_USER_ID ?? 1),
   openAiApiKey,
   openAiTextModel: textModel,
+  openAiFastTextModel: fastTextModel,
+  openAiPosterTextModel: posterTextModel,
   openAiImageModel: imageModel,
+  posterImageQuality: imageQuality,
+  posterImageSize: imageSize,
   allowedReactions: ["❤️", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "🫶", "💯", "🔥"]
 };
 
@@ -97,6 +104,7 @@ console.log(`Wrote prompt files to ${outDir}`);
 console.log(`Generating image with ${imageModel}, size ${imageSize}, timeout ${imageTimeoutMs}ms...`);
 const image = await openAi.generatePosterImage(posterPlan.image_prompt, {
   size: imageSize,
+  quality: config.posterImageQuality,
   timeoutMs: imageTimeoutMs,
   retries: 0
 });
@@ -136,6 +144,14 @@ function requireEnv(name: string): string {
     throw new Error(`${name} is required. Set it in your shell or .dev.vars.`);
   }
   return value;
+}
+
+function parsePosterImageQuality(value: string | undefined): PosterImageQuality {
+  const quality = value?.trim() || "medium";
+  if (quality !== "low" && quality !== "medium" && quality !== "high" && quality !== "auto") {
+    throw new Error("POSTER_IMAGE_QUALITY must be one of: low, medium, high, auto");
+  }
+  return quality;
 }
 
 function toStoredEntries(items: PersianGratitudeItem[], localDate: string): StoredGratitudeEntry[] {

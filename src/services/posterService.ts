@@ -49,7 +49,10 @@ export class PosterService {
       }
 
       await this.telegram.sendChatAction(chatId, "upload_photo");
-      const image = await this.openAi.generatePosterImage(imagePrompt);
+      const image = await this.openAi.generatePosterImage(imagePrompt, {
+        size: this.config.posterImageSize,
+        quality: this.config.posterImageQuality
+      });
       const r2Key = `posters/${localDate}.png`;
       await this.posters.put(r2Key, image, {
         httpMetadata: { contentType: "image/png" },
