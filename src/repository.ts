@@ -180,7 +180,12 @@ export class Repository {
       .run();
   }
 
-  async getSentNudgeMessageIds(chatId: number, beforeTelegramMessageId: number): Promise<number[]> {
+  async getSentNudgeMessageIds(
+    chatId: number,
+    beforeTelegramMessageId: number,
+    localDate: string,
+    localHour: number
+  ): Promise<number[]> {
     const result = await this.db
       .prepare(`
         SELECT telegram_message_id
@@ -188,10 +193,13 @@ export class Repository {
         WHERE chat_id = ?
           AND status = 'sent'
           AND telegram_message_id IS NOT NULL
-          AND telegram_message_id < ?
+          AND (
+            telegram_message_id < ?
+            OR (local_date = ? AND local_hour = ?)
+          )
         ORDER BY telegram_message_id ASC
       `)
-      .bind(chatId, beforeTelegramMessageId)
+      .bind(chatId, beforeTelegramMessageId, localDate, localHour)
       .all<{ telegram_message_id: number }>();
 
     return (result.results ?? []).map((row) => row.telegram_message_id);

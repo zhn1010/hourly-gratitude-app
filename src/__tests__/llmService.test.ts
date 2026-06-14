@@ -14,7 +14,7 @@ const config: AppConfig = {
   openAiImageModel: "image",
   posterImageQuality: "medium",
   posterImageSize: "1024x1536",
-  allowedReactions: ["❤️", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "🫶", "💯", "🔥"]
+  allowedReactions: ["❤", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "💯", "🔥"]
 };
 
 describe("LlmService reaction selection", () => {

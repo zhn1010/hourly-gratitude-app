@@ -2,7 +2,7 @@ import type { TelegramClient } from "../clients/telegramClient";
 import { logError, logInfo, logWarn } from "../logger";
 import type { Repository } from "../repository";
 import { getBerlinLocalParts, toIsoFromTelegramDate } from "../time";
-import type { AppConfig, TelegramUpdate } from "../types";
+import type { AppConfig, StoredGratitudeEntry, TelegramUpdate } from "../types";
 import { fallbackReaction, type LlmService } from "./llmService";
 import type { MemoryService } from "./memoryService";
 
@@ -53,15 +53,16 @@ export class GratitudeService {
       createdAtUtc: nowIso
     });
 
-    await this.deletePreviousNudges(message.chat.id, message.message_id);
+    await this.deletePreviousNudges(message.chat.id, message.message_id, local.date, local.hour);
 
-    const todayEntries = await this.repository.getEntriesForDate(local.date);
+    const todayEntries = await this.getEntriesForReaction(local.date, message.chat.id, message.message_id);
     let reaction = fallbackReaction();
     try {
       reaction = await this.llm.selectReaction(text, todayEntries);
       await this.telegram.setMessageReaction(message.chat.id, message.message_id, reaction);
     } catch (error) {
       logError("reaction_failed", error, { chatId: message.chat.id, messageId: message.message_id });
+      reaction = fallbackReaction();
       try {
         await this.telegram.setMessageReaction(message.chat.id, message.message_id, reaction);
       } catch (fallbackError) {
@@ -81,8 +82,33 @@ export class GratitudeService {
     });
   }
 
-  private async deletePreviousNudges(chatId: number, beforeMessageId: number): Promise<void> {
-    const messageIds = await this.repository.getSentNudgeMessageIds(chatId, beforeMessageId);
+  private async getEntriesForReaction(
+    localDate: string,
+    chatId: number,
+    messageId: number
+  ): Promise<StoredGratitudeEntry[]> {
+    try {
+      return await this.repository.getEntriesForDate(localDate);
+    } catch (error) {
+      logError("reaction_context_load_failed", error, { chatId, messageId, localDate });
+      return [];
+    }
+  }
+
+  private async deletePreviousNudges(
+    chatId: number,
+    beforeMessageId: number,
+    localDate: string,
+    localHour: number
+  ): Promise<void> {
+    let messageIds: number[];
+    try {
+      messageIds = await this.repository.getSentNudgeMessageIds(chatId, beforeMessageId, localDate, localHour);
+    } catch (error) {
+      logError("nudge_lookup_failed", error, { chatId, beforeMessageId, localDate, localHour });
+      return;
+    }
+
     for (const messageId of messageIds) {
       try {
         await this.telegram.deleteMessage(chatId, messageId);

@@ -1,6 +1,7 @@
 import type { AppConfig, Env, PosterImageQuality } from "./types";
 
-const DEFAULT_REACTIONS = ["❤️", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "🫶", "💯", "🔥"];
+const TELEGRAM_REACTION_EMOJIS = new Set(["❤", "🙏", "👏", "🎉", "🤩", "🥰", "👌", "💯", "🔥"]);
+const DEFAULT_REACTIONS = [...TELEGRAM_REACTION_EMOJIS];
 const POSTER_IMAGE_QUALITIES = new Set<PosterImageQuality>(["low", "medium", "high", "auto"]);
 
 export function getConfig(env: Env): AppConfig {
@@ -52,9 +53,13 @@ function requireEnv(value: string | undefined, name: string): string {
 
 function parseReactions(value: string | undefined): string[] {
   const reactions = value
-    ? value.split(",").map((item) => item.trim()).filter(Boolean)
+    ? value.split(",").map((item) => normalizeReaction(item.trim())).filter((item) => TELEGRAM_REACTION_EMOJIS.has(item))
     : DEFAULT_REACTIONS;
   return reactions.length > 0 ? reactions : DEFAULT_REACTIONS;
+}
+
+function normalizeReaction(value: string): string {
+  return value === "❤️" ? "❤" : value;
 }
 
 function parsePosterImageQuality(value: string | undefined): PosterImageQuality {

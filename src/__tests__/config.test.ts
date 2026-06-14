@@ -19,6 +19,12 @@ describe("getConfig cost controls", () => {
     expect(config.openAiFastTextModel).toBe("legacy-model");
     expect(config.openAiPosterTextModel).toBe("legacy-model");
   });
+
+  it("normalizes and filters Telegram reaction emojis", () => {
+    const config = getConfig(env({ TELEGRAM_ALLOWED_REACTIONS: "❤️,🫶,🎉" }));
+
+    expect(config.allowedReactions).toEqual(["❤", "🎉"]);
+  });
 });
 
 function env(overrides: Partial<Env> = {}): Env {

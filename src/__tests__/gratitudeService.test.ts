@@ -36,7 +36,11 @@ describe("GratitudeService", () => {
       {
         reserveUpdate: async () => true,
         insertGratitudeEntry: async (input: { text: string }) => inserted.push(input.text),
-        getSentNudgeMessageIds: async () => [],
+        getSentNudgeMessageIds: async (_chatId: number, _beforeMessageId: number, localDate: string, localHour: number) => {
+          expect(localDate).toBe("2026-05-25");
+          expect(localHour).toBe(12);
+          return [];
+        },
         markNudgeDeleted: async () => {},
         getEntriesForDate: async () => [],
         setEntryReaction: async (_chatId: number, _messageId: number, emoji: string) => reactions.push(emoji)
@@ -59,8 +63,15 @@ describe("GratitudeService", () => {
       {
         reserveUpdate: async () => true,
         insertGratitudeEntry: async () => {},
-        getSentNudgeMessageIds: async (_chatId: number, beforeMessageId: number) => {
+        getSentNudgeMessageIds: async (
+          _chatId: number,
+          beforeMessageId: number,
+          localDate: string,
+          localHour: number
+        ) => {
           expect(beforeMessageId).toBe(10);
+          expect(localDate).toBe("2026-05-25");
+          expect(localHour).toBe(12);
           return [7, 8, 9];
         },
         markNudgeDeleted: async (_chatId: number, messageId: number) => marked.push(messageId),
@@ -79,6 +90,36 @@ describe("GratitudeService", () => {
 
     expect(deleted).toEqual([7, 8, 9]);
     expect(marked).toEqual([7, 8, 9]);
+  });
+
+  it("retries with the fallback reaction when the selected emoji is rejected", async () => {
+    const attempted: string[] = [];
+    const recorded: string[] = [];
+    const service = new GratitudeService(
+      {
+        reserveUpdate: async () => true,
+        insertGratitudeEntry: async () => {},
+        getSentNudgeMessageIds: async () => [],
+        markNudgeDeleted: async () => {},
+        getEntriesForDate: async () => [],
+        setEntryReaction: async (_chatId: number, _messageId: number, emoji: string) => recorded.push(emoji)
+      } as never,
+      {
+        setMessageReaction: async (_chatId: number, _messageId: number, emoji: string) => {
+          attempted.push(emoji);
+          if (emoji === "🫶") {
+            throw new Error("unsupported reaction");
+          }
+        }
+      } as never,
+      { selectReaction: async () => "🫶" } as never,
+      config
+    );
+
+    await service.handleUpdate(baseUpdate);
+
+    expect(attempted).toEqual(["🫶", "🙏"]);
+    expect(recorded).toEqual(["🙏"]);
   });
 
   it("ignores duplicate updates", async () => {
