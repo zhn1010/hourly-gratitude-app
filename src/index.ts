@@ -46,8 +46,19 @@ async function handleTelegramWebhook(request: Request, env: Env): Promise<Respon
   }
 
   const update = await request.json<TelegramUpdate>();
+  logInfo("telegram_webhook_update_received", {
+    updateId: update.update_id,
+    hasMessage: Boolean(update.message),
+    messageId: update.message?.message_id,
+    chatId: update.message?.chat.id,
+    chatType: update.message?.chat.type,
+    fromUserId: update.message?.from?.id,
+    textLength: update.message?.text?.length,
+    captionLength: update.message?.caption?.length
+  });
   const services = createServices(env);
   await services.gratitude.handleUpdate(update);
+  logInfo("telegram_webhook_update_handled", { updateId: update.update_id });
   return Response.json({ ok: true });
 }
 

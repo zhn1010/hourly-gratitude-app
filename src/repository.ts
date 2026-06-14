@@ -33,8 +33,8 @@ export class Repository {
     localDate: string;
     localHour: number;
     createdAtUtc: string;
-  }): Promise<void> {
-    await this.db
+  }): Promise<number> {
+    const result = await this.db
       .prepare(`
         INSERT OR IGNORE INTO gratitude_entries (
           telegram_update_id, telegram_message_id, chat_id, user_id, text,
@@ -54,13 +54,15 @@ export class Repository {
         input.createdAtUtc
       )
       .run();
+    return result.meta.changes;
   }
 
-  async setEntryReaction(chatId: number, messageId: number, reactionEmoji: string): Promise<void> {
-    await this.db
+  async setEntryReaction(chatId: number, messageId: number, reactionEmoji: string): Promise<number> {
+    const result = await this.db
       .prepare("UPDATE gratitude_entries SET reaction_emoji = ? WHERE chat_id = ? AND telegram_message_id = ?")
       .bind(reactionEmoji, chatId, messageId)
       .run();
+    return result.meta.changes;
   }
 
   async hasEntryForHour(localDate: string, localHour: number): Promise<boolean> {
@@ -205,11 +207,12 @@ export class Repository {
     return (result.results ?? []).map((row) => row.telegram_message_id);
   }
 
-  async markNudgeDeleted(chatId: number, telegramMessageId: number): Promise<void> {
-    await this.db
+  async markNudgeDeleted(chatId: number, telegramMessageId: number): Promise<number> {
+    const result = await this.db
       .prepare("UPDATE nudges SET status = 'deleted' WHERE chat_id = ? AND telegram_message_id = ?")
       .bind(chatId, telegramMessageId)
       .run();
+    return result.meta.changes;
   }
 
   async reserveDailyPoster(localDate: string, chatId: number, nowIso: string): Promise<boolean> {
