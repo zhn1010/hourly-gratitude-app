@@ -40,6 +40,13 @@ export class TelegramClient {
     });
   }
 
+  async deleteMessage(chatId: number, messageId: number): Promise<void> {
+    await this.call<boolean>("deleteMessage", {
+      chat_id: chatId,
+      message_id: messageId
+    });
+  }
+
   async sendChatAction(chatId: number, action: "typing" | "upload_photo"): Promise<void> {
     await this.call<boolean>("sendChatAction", {
       chat_id: chatId,

@@ -78,7 +78,7 @@ describe("NudgeService", () => {
 
     await service.sendNudgeIfNeeded("2026-05-25", 11, 55);
 
-    expect(sent).toEqual(["Five minutes left to catch this hour with one grateful note."]);
+    expect(sent).toEqual(["پنج دقیقه مانده؛ یک جمله قدردانی برای این ساعت کافی است."]);
     expect(completedStatus).toBe("sent");
   });
 });

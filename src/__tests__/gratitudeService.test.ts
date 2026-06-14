@@ -36,6 +36,8 @@ describe("GratitudeService", () => {
       {
         reserveUpdate: async () => true,
         insertGratitudeEntry: async (input: { text: string }) => inserted.push(input.text),
+        getSentNudgeMessageIds: async () => [],
+        markNudgeDeleted: async () => {},
         getEntriesForDate: async () => [],
         setEntryReaction: async (_chatId: number, _messageId: number, emoji: string) => reactions.push(emoji)
       } as never,
@@ -48,6 +50,35 @@ describe("GratitudeService", () => {
 
     expect(inserted).toEqual(["I am grateful for coffee."]);
     expect(reactions).toEqual(["🎉", "🎉"]);
+  });
+
+  it("deletes previous nudge messages when gratitude is accepted", async () => {
+    const deleted: number[] = [];
+    const marked: number[] = [];
+    const service = new GratitudeService(
+      {
+        reserveUpdate: async () => true,
+        insertGratitudeEntry: async () => {},
+        getSentNudgeMessageIds: async (_chatId: number, beforeMessageId: number) => {
+          expect(beforeMessageId).toBe(10);
+          return [7, 8, 9];
+        },
+        markNudgeDeleted: async (_chatId: number, messageId: number) => marked.push(messageId),
+        getEntriesForDate: async () => [],
+        setEntryReaction: async () => {}
+      } as never,
+      {
+        deleteMessage: async (_chatId: number, messageId: number) => deleted.push(messageId),
+        setMessageReaction: async () => {}
+      } as never,
+      { selectReaction: async () => "🙏" } as never,
+      config
+    );
+
+    await service.handleUpdate(baseUpdate);
+
+    expect(deleted).toEqual([7, 8, 9]);
+    expect(marked).toEqual([7, 8, 9]);
   });
 
   it("ignores duplicate updates", async () => {

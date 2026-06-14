@@ -51,6 +51,8 @@ export class GratitudeService {
       createdAtUtc: nowIso
     });
 
+    await this.deletePreviousNudges(message.chat.id, message.message_id);
+
     const todayEntries = await this.repository.getEntriesForDate(local.date);
     let reaction = fallbackReaction();
     try {
@@ -66,5 +68,17 @@ export class GratitudeService {
     }
 
     await this.repository.setEntryReaction(message.chat.id, message.message_id, reaction);
+  }
+
+  private async deletePreviousNudges(chatId: number, beforeMessageId: number): Promise<void> {
+    const messageIds = await this.repository.getSentNudgeMessageIds(chatId, beforeMessageId);
+    for (const messageId of messageIds) {
+      try {
+        await this.telegram.deleteMessage(chatId, messageId);
+        await this.repository.markNudgeDeleted(chatId, messageId);
+      } catch (error) {
+        logError("nudge_delete_failed", error, { chatId, messageId });
+      }
+    }
   }
 }

@@ -130,6 +130,30 @@ export class Repository {
       .run();
   }
 
+  async getSentNudgeMessageIds(chatId: number, beforeTelegramMessageId: number): Promise<number[]> {
+    const result = await this.db
+      .prepare(`
+        SELECT telegram_message_id
+        FROM nudges
+        WHERE chat_id = ?
+          AND status = 'sent'
+          AND telegram_message_id IS NOT NULL
+          AND telegram_message_id < ?
+        ORDER BY telegram_message_id ASC
+      `)
+      .bind(chatId, beforeTelegramMessageId)
+      .all<{ telegram_message_id: number }>();
+
+    return (result.results ?? []).map((row) => row.telegram_message_id);
+  }
+
+  async markNudgeDeleted(chatId: number, telegramMessageId: number): Promise<void> {
+    await this.db
+      .prepare("UPDATE nudges SET status = 'deleted' WHERE chat_id = ? AND telegram_message_id = ?")
+      .bind(chatId, telegramMessageId)
+      .run();
+  }
+
   async reserveDailyPoster(localDate: string, chatId: number, nowIso: string): Promise<boolean> {
     const existing = await this.db
       .prepare("SELECT id FROM daily_posters WHERE local_date = ? AND chat_id = ?")

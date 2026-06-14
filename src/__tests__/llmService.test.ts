@@ -35,6 +35,7 @@ describe("LlmService reaction selection", () => {
     const emoji = await service.selectReaction("بالاخره پروژه تموم شد، خیلی خوشحالم!", []);
 
     expect(emoji).toBe("🎉");
+    expect(capturedPrompt).toContain("All explanations and generated text outputs in this bot must be Persian");
     expect(capturedPrompt).toContain("Do not overuse 🙏");
     expect(capturedPrompt).toContain("success, completion, pride, progress -> 🎉");
     expect(capturedPrompt).toContain("excitement, delight, surprise, wonder -> 🤩");
@@ -68,7 +69,7 @@ describe("LlmService cost controls", () => {
         generateJson: async (prompt: string, _schemaName: string, _schema: unknown, options: unknown) => {
           capturedPrompt = prompt;
           capturedOptions = options;
-          return { message: "A small note still counts." };
+          return { message: "یک یادداشت کوچک هم کافی است." };
         }
       } as never,
       config
@@ -82,6 +83,8 @@ describe("LlmService cost controls", () => {
     ]);
 
     expect(capturedPrompt).toContain("Recent gratitude entries");
+    expect(capturedPrompt).toContain("Output must always be Persian");
+    expect(capturedPrompt).not.toContain("Match the dominant language");
     expect(capturedPrompt).not.toContain("first");
     expect(capturedPrompt).toContain("second");
     expect(capturedPrompt).toContain("third");
@@ -94,6 +97,17 @@ describe("LlmService cost controls", () => {
     });
   });
 
+  it("uses Persian fallback text when generated nudge text is not Persian", async () => {
+    const service = new LlmService(
+      {
+        generateJson: async () => ({ message: "A small note still counts." })
+      } as never,
+      config
+    );
+
+    await expect(service.createNudge(14, 50, [])).resolves.toBe("هنوز وقت هست یک قدردانی کوچک برای این ساعت بنویسی.");
+  });
+
   it("uses the poster text model and truncates long poster entries", async () => {
     let capturedPrompt = "";
     let capturedOptions: unknown;
@@ -103,7 +117,7 @@ describe("LlmService cost controls", () => {
         generateJson: async (prompt: string, _schemaName: string, _schema: unknown, options: unknown) => {
           capturedPrompt = prompt;
           capturedOptions = options;
-          return { summary: "summary", image_prompt: "prompt", caption: "caption" };
+          return { summary: "خلاصه", image_prompt: "پوستر شاد", caption: "سپاسگزارم" };
         }
       } as never,
       config
@@ -111,6 +125,8 @@ describe("LlmService cost controls", () => {
 
     await service.createPosterPlan("2026-06-08", [entry(8, longText)]);
 
+    expect(capturedPrompt).toContain("All output fields must always be Persian");
+    expect(capturedPrompt).toContain("some sort of visual timeline");
     expect(capturedPrompt).toContain(`${"x".repeat(180)}...`);
     expect(capturedPrompt).not.toContain("x".repeat(181));
     expect(capturedOptions).toEqual({

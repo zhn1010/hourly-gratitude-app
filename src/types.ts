@@ -80,7 +80,7 @@ export interface NudgeRecordInput {
   prompt: string;
   messageText: string;
   telegramMessageId: number | null;
-  status: "pending" | "sent" | "failed" | "skipped";
+  status: "pending" | "sent" | "failed" | "skipped" | "deleted";
   errorMessage?: string;
 }
 
