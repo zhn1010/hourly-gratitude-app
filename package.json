@@ -10,6 +10,8 @@
     "db:migrate:local": "wrangler d1 migrations apply gratitude_bot --local",
     "db:migrate:remote": "wrangler d1 migrations apply gratitude_bot --remote",
     "set-webhook": "tsx scripts/set-webhook.ts",
+    "memory:preview": "node --import tsx/esm scripts/backfill-memories.ts",
+    "memory:apply": "node --import tsx/esm scripts/backfill-memories.ts --apply",
     "sample:poster": "node --import tsx/esm scripts/generate-sample-poster.ts",
     "sample:reactions": "node --import tsx/esm scripts/generate-sample-reactions.ts",
     "test": "vitest run",
