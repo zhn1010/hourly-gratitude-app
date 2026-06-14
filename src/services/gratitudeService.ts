@@ -154,7 +154,7 @@ export class GratitudeService {
   ): Promise<void> {
     let messageIds: number[];
     try {
-      messageIds = await this.repository.getSentNudgeMessageIds(chatId, beforeMessageId, localDate, localHour);
+      messageIds = await this.repository.getSentNudgeMessageIds(chatId, localDate, localHour);
     } catch (error) {
       logError("nudge_lookup_failed", error, { chatId, beforeMessageId, localDate, localHour });
       return;

@@ -184,7 +184,6 @@ export class Repository {
 
   async getSentNudgeMessageIds(
     chatId: number,
-    beforeTelegramMessageId: number,
     localDate: string,
     localHour: number
   ): Promise<number[]> {
@@ -195,13 +194,12 @@ export class Repository {
         WHERE chat_id = ?
           AND status = 'sent'
           AND telegram_message_id IS NOT NULL
-          AND (
-            telegram_message_id < ?
-            OR (local_date = ? AND local_hour = ?)
-          )
-        ORDER BY telegram_message_id ASC
+          AND local_date = ?
+          AND local_hour = ?
+        ORDER BY local_minute ASC
+        LIMIT 3
       `)
-      .bind(chatId, beforeTelegramMessageId, localDate, localHour)
+      .bind(chatId, localDate, localHour)
       .all<{ telegram_message_id: number }>();
 
     return (result.results ?? []).map((row) => row.telegram_message_id);
