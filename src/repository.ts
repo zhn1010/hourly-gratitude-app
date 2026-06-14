@@ -3,6 +3,8 @@ import type { DailyPosterInput, MemoryFactInput, NudgeRecordInput, StoredGratitu
 interface EntryRow extends StoredGratitudeEntry {}
 interface MemoryRow extends StoredMemory {}
 
+const MAX_NUDGES_TO_DELETE_PER_GRATITUDE = 10;
+
 export class Repository {
   constructor(private readonly db: D1Database) {}
 
@@ -184,8 +186,8 @@ export class Repository {
 
   async getSentNudgeMessageIds(
     chatId: number,
-    localDate: string,
-    localHour: number
+    beforeTelegramMessageId: number,
+    localDate: string
   ): Promise<number[]> {
     const result = await this.db
       .prepare(`
@@ -195,11 +197,11 @@ export class Repository {
           AND status = 'sent'
           AND telegram_message_id IS NOT NULL
           AND local_date = ?
-          AND local_hour = ?
-        ORDER BY local_minute ASC
-        LIMIT 3
+          AND telegram_message_id < ?
+        ORDER BY telegram_message_id DESC
+        LIMIT ?
       `)
-      .bind(chatId, localDate, localHour)
+      .bind(chatId, localDate, beforeTelegramMessageId, MAX_NUDGES_TO_DELETE_PER_GRATITUDE)
       .all<{ telegram_message_id: number }>();
 
     return (result.results ?? []).map((row) => row.telegram_message_id);

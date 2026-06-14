@@ -36,9 +36,9 @@ describe("GratitudeService", () => {
       {
         reserveUpdate: async () => true,
         insertGratitudeEntry: async (input: { text: string }) => inserted.push(input.text),
-        getSentNudgeMessageIds: async (_chatId: number, localDate: string, localHour: number) => {
+        getSentNudgeMessageIds: async (_chatId: number, beforeMessageId: number, localDate: string) => {
+          expect(beforeMessageId).toBe(10);
           expect(localDate).toBe("2026-05-25");
-          expect(localHour).toBe(12);
           return [];
         },
         markNudgeDeleted: async () => {},
@@ -65,11 +65,11 @@ describe("GratitudeService", () => {
         insertGratitudeEntry: async () => {},
         getSentNudgeMessageIds: async (
           _chatId: number,
-          localDate: string,
-          localHour: number
+          beforeMessageId: number,
+          localDate: string
         ) => {
+          expect(beforeMessageId).toBe(10);
           expect(localDate).toBe("2026-05-25");
-          expect(localHour).toBe(12);
           return [7, 8, 9];
         },
         markNudgeDeleted: async (_chatId: number, messageId: number) => marked.push(messageId),
