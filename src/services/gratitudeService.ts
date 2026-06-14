@@ -4,13 +4,15 @@ import type { Repository } from "../repository";
 import { getBerlinLocalParts, toIsoFromTelegramDate } from "../time";
 import type { AppConfig, TelegramUpdate } from "../types";
 import { fallbackReaction, type LlmService } from "./llmService";
+import type { MemoryService } from "./memoryService";
 
 export class GratitudeService {
   constructor(
     private readonly repository: Repository,
     private readonly telegram: TelegramClient,
     private readonly llm: LlmService,
-    private readonly config: AppConfig
+    private readonly config: AppConfig,
+    private readonly memory?: MemoryService
   ) {}
 
   async handleUpdate(update: TelegramUpdate): Promise<void> {
@@ -68,6 +70,15 @@ export class GratitudeService {
     }
 
     await this.repository.setEntryReaction(message.chat.id, message.message_id, reaction);
+
+    await this.memory?.captureFromMessage({
+      userId: message.from.id,
+      messageId: message.message_id,
+      text,
+      localDate: local.date,
+      receivedAtUtc,
+      nowIso
+    });
   }
 
   private async deletePreviousNudges(chatId: number, beforeMessageId: number): Promise<void> {

@@ -1,9 +1,11 @@
 import type { OpenAiClient } from "../clients/openaiClient";
-import type { AppConfig, StoredGratitudeEntry } from "../types";
+import type { AppConfig, StoredGratitudeEntry, StoredMemory } from "../types";
 import {
+  type MemoryExtractionResult,
   type NudgeResult,
   type PosterPlanResult,
   type ReactionResult,
+  memoryExtractionSchema,
   nudgeSchema,
   posterPlanSchema,
   reactionSchema
@@ -43,12 +45,19 @@ export class LlmService {
     return this.config.allowedReactions.includes(result.emoji) ? result.emoji : "🙏";
   }
 
-  async createNudge(localHour: number, localMinute: number, todayEntries: StoredGratitudeEntry[]): Promise<string> {
+  async createNudge(
+    localHour: number,
+    localMinute: number,
+    todayEntries: StoredGratitudeEntry[],
+    memories: StoredMemory[] = []
+  ): Promise<string> {
     const prompt = [
       "Write one short Telegram nudge reminding the user to send one gratitude for the current hour.",
       "Output must always be Persian, regardless of the user's previous entries.",
       "Constraints: one sentence, no guilt, no markdown, no hashtags, under 180 characters.",
       `Current local time: ${String(localHour).padStart(2, "0")}:${String(localMinute).padStart(2, "0")} Europe/Berlin.`,
+      "",
+      formatMemories(memories, "Known user context"),
       "",
       formatEntries(lastEntries(todayEntries, 3), "Recent gratitude entries")
     ].join("\n");
@@ -62,7 +71,11 @@ export class LlmService {
     return cleanPersianSingleLine(result.message, fallbackNudge(localMinute));
   }
 
-  async createPosterPlan(localDate: string, entries: StoredGratitudeEntry[]): Promise<PosterPlanResult> {
+  async createPosterPlan(
+    localDate: string,
+    entries: StoredGratitudeEntry[],
+    memories: StoredMemory[] = []
+  ): Promise<PosterPlanResult> {
     const prompt = [
       "Create an end-of-day gratitude poster plan for a Telegram bot.",
       "All output fields must always be Persian, regardless of the user's entries.",
@@ -71,6 +84,8 @@ export class LlmService {
       "The image prompt should be suitable for a vertical poster, rich in concrete visual details from the day, and should not include private Telegram metadata.",
       "Caption must be concise and suitable for Telegram.",
       `Local date: ${localDate}`,
+      "",
+      formatMemories(memories, "Known user context"),
       "",
       formatEntries(truncateEntryText(entries, 180), "Entries")
     ].join("\n");
@@ -86,6 +101,39 @@ export class LlmService {
       image_prompt: cleanPersianMultiline(result.image_prompt, fallbackPosterPrompt(localDate, entries)),
       caption: cleanPersianSingleLine(result.caption, "امروز در سپاسگزاری.")
     };
+  }
+
+  async extractMemories(input: {
+    messageText: string;
+    localDate: string;
+    existingMemories: StoredMemory[];
+  }): Promise<MemoryExtractionResult> {
+    const prompt = [
+      "Extract durable personal memories from one Telegram gratitude message.",
+      "Return only facts that are likely to help future personalization: family relationships, names, birthdays, important dates, preferences, constraints, projects, recurring routines, or meaningful milestones.",
+      "Do not store ordinary one-off gratitude content unless it reveals a durable fact.",
+      "Use concise English for internal memory facts, even if the user writes in another language.",
+      "Ground relative dates against the current Europe/Berlin local date.",
+      "If the user says a child is turning N years old on a date, infer the birth date.",
+      "Treat phrasing like 'my daughter', 'my girl', or 'my little girl' as the user's child when the context is family or childhood.",
+      "Use stable lowercase keys in the form category:subject:attribute, for example person:niki:relationship or person:niki:birth_date.",
+      "If a new message corrects an existing memory, return the corrected fact with the same key.",
+      "Do not guess sensitive facts, medical diagnoses, or anything unsupported by the message.",
+      "Use confidence from 0 to 1. Return no facts when confidence is below 0.65.",
+      "",
+      `Current local date: ${input.localDate}`,
+      "",
+      formatMemories(input.existingMemories, "Existing memories"),
+      "",
+      `Message: ${input.messageText}`
+    ].join("\n");
+
+    return this.openAi.generateJson<MemoryExtractionResult>(prompt, "memory_extraction", memoryExtractionSchema, {
+      model: this.config.openAiFastTextModel,
+      reasoningEffort: "none",
+      maxOutputTokens: 900,
+      verbosity: "low"
+    });
   }
 }
 
@@ -128,6 +176,17 @@ function formatEntries(entries: StoredGratitudeEntry[], title: string): string {
   return [
     `${title}:`,
     ...entries.map((entry) => `- ${String(entry.local_hour).padStart(2, "0")}:00 ${entry.text}`)
+  ].join("\n");
+}
+
+function formatMemories(memories: StoredMemory[], title: string): string {
+  if (memories.length === 0) {
+    return `${title}: none yet.`;
+  }
+
+  return [
+    `${title}:`,
+    ...memories.slice(0, 20).map((memory) => `- ${memory.memory_key}: ${memory.fact}`)
   ].join("\n");
 }
 

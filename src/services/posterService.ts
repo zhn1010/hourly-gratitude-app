@@ -2,7 +2,7 @@ import type { OpenAiClient } from "../clients/openaiClient";
 import type { TelegramClient } from "../clients/telegramClient";
 import { logError, logInfo } from "../logger";
 import type { Repository } from "../repository";
-import type { AppConfig } from "../types";
+import type { AppConfig, StoredMemory } from "../types";
 import { fallbackPosterPrompt, fallbackSummary, type LlmService } from "./llmService";
 
 export class PosterService {
@@ -24,12 +24,13 @@ export class PosterService {
     }
 
     const entries = await this.repository.getEntriesForDate(localDate);
+    const memories = await this.loadMemories(chatId, localDate);
     let summary = fallbackSummary(entries);
     let imagePrompt = fallbackPosterPrompt(localDate, entries);
     let caption = summary;
 
     try {
-      const plan = await this.llm.createPosterPlan(localDate, entries);
+      const plan = await this.llm.createPosterPlan(localDate, entries, memories);
       summary = plan.summary;
       imagePrompt = plan.image_prompt;
       caption = plan.caption;
@@ -96,6 +97,15 @@ export class PosterService {
           errorMessage: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
         });
       }
+    }
+  }
+
+  private async loadMemories(chatId: number, localDate: string): Promise<StoredMemory[]> {
+    try {
+      return await this.repository.getMemoriesForUser(chatId);
+    } catch (error) {
+      logError("poster_memory_load_failed", error, { localDate });
+      return [];
     }
   }
 }

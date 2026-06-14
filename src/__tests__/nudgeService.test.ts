@@ -62,6 +62,7 @@ describe("NudgeService", () => {
         hasEntryForHour: async () => false,
         reserveNudge: async () => true,
         getEntriesForDate: async () => [],
+        getMemoriesForUser: async () => [],
         completeNudge: async (input: { status: string }) => {
           completedStatus = input.status;
         }

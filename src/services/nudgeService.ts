@@ -1,7 +1,7 @@
 import type { TelegramClient } from "../clients/telegramClient";
 import { logError, logInfo } from "../logger";
 import type { Repository } from "../repository";
-import type { AppConfig } from "../types";
+import type { AppConfig, StoredMemory } from "../types";
 import { fallbackNudge, type LlmService } from "./llmService";
 
 export class NudgeService {
@@ -36,11 +36,12 @@ export class NudgeService {
     }
 
     const todayEntries = await this.repository.getEntriesForDate(localDate);
+    const memories = await this.loadMemories(chatId, localDate, localHour);
     let messageText = fallback;
     let prompt = "fallback";
 
     try {
-      messageText = await this.llm.createNudge(localHour, localMinute, todayEntries);
+      messageText = await this.llm.createNudge(localHour, localMinute, todayEntries, memories);
       prompt = "llm";
       const sent = await this.telegram.sendMessage(chatId, messageText);
       await this.repository.completeNudge({
@@ -82,6 +83,15 @@ export class NudgeService {
           errorMessage: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
         });
       }
+    }
+  }
+
+  private async loadMemories(chatId: number, localDate: string, localHour: number): Promise<StoredMemory[]> {
+    try {
+      return await this.repository.getMemoriesForUser(chatId);
+    } catch (error) {
+      logError("nudge_memory_load_failed", error, { localDate, localHour });
+      return [];
     }
   }
 }

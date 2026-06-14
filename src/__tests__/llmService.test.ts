@@ -138,6 +138,53 @@ describe("LlmService cost controls", () => {
   });
 });
 
+describe("LlmService memory extraction", () => {
+  it("grounds durable memories to the local date", async () => {
+    let capturedPrompt = "";
+    let capturedOptions: unknown;
+    const service = new LlmService(
+      {
+        generateJson: async (prompt: string, _schemaName: string, _schema: unknown, options: unknown) => {
+          capturedPrompt = prompt;
+          capturedOptions = options;
+          return {
+            facts: [
+              {
+                key: "person:niki:birth_date",
+                category: "person",
+                subject: "Niki",
+                fact: "Niki is the user's daughter and was born on 2023-06-15.",
+                confidence: 0.92,
+                source_quote: "tomorrow is my girl Niki 3 year old birth day"
+              }
+            ]
+          };
+        }
+      } as never,
+      config
+    );
+
+    const result = await service.extractMemories({
+      messageText: "tomorrow is my girl Niki 3 year old birth day",
+      localDate: "2026-06-14",
+      existingMemories: []
+    });
+
+    expect(result.facts).toHaveLength(1);
+    expect(result.facts[0]!.key).toBe("person:niki:birth_date");
+    expect(capturedPrompt).toContain("Current local date: 2026-06-14");
+    expect(capturedPrompt).toContain("If the user says a child is turning N years old on a date, infer the birth date.");
+    expect(capturedPrompt).toContain("my daughter");
+    expect(capturedPrompt).toContain("my girl");
+    expect(capturedOptions).toEqual({
+      model: "fast-model",
+      reasoningEffort: "none",
+      maxOutputTokens: 900,
+      verbosity: "low"
+    });
+  });
+});
+
 function entry(hour: number, text: string): StoredGratitudeEntry {
   return {
     id: hour,

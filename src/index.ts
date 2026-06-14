@@ -5,6 +5,7 @@ import { logError, logInfo, logWarn } from "./logger";
 import { Repository } from "./repository";
 import { GratitudeService } from "./services/gratitudeService";
 import { LlmService } from "./services/llmService";
+import { MemoryService } from "./services/memoryService";
 import { NudgeService } from "./services/nudgeService";
 import { PosterService } from "./services/posterService";
 import { getScheduledAction } from "./time";
@@ -81,9 +82,10 @@ function createServices(env: Env): {
   const telegram = new TelegramClient(config.telegramBotToken);
   const openAi = new OpenAiClient(config.openAiApiKey, config.openAiTextModel, config.openAiImageModel);
   const llm = new LlmService(openAi, config);
+  const memory = new MemoryService(repository, llm);
 
   return {
-    gratitude: new GratitudeService(repository, telegram, llm, config),
+    gratitude: new GratitudeService(repository, telegram, llm, config, memory),
     nudge: new NudgeService(repository, telegram, llm, config),
     poster: new PosterService(repository, telegram, openAi, llm, env.POSTERS, config)
   };

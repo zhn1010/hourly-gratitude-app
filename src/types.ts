@@ -68,6 +68,34 @@ export interface StoredGratitudeEntry {
   created_at_utc: string;
 }
 
+export interface StoredMemory {
+  id: number;
+  user_id: number;
+  memory_key: string;
+  category: string;
+  subject: string;
+  fact: string;
+  confidence: number;
+  source_text: string;
+  source_message_id: number;
+  created_at_utc: string;
+  updated_at_utc: string;
+  last_observed_at_utc: string;
+}
+
+export interface MemoryFactInput {
+  userId: number;
+  key: string;
+  category: string;
+  subject: string;
+  fact: string;
+  confidence: number;
+  sourceText: string;
+  sourceMessageId: number;
+  observedAtUtc: string;
+  nowIso: string;
+}
+
 export interface TelegramMessageResult {
   message_id: number;
 }

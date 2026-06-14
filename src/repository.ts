@@ -1,6 +1,7 @@
-import type { DailyPosterInput, NudgeRecordInput, StoredGratitudeEntry } from "./types";
+import type { DailyPosterInput, MemoryFactInput, NudgeRecordInput, StoredGratitudeEntry, StoredMemory } from "./types";
 
 interface EntryRow extends StoredGratitudeEntry {}
+interface MemoryRow extends StoredMemory {}
 
 export class Repository {
   constructor(private readonly db: D1Database) {}
@@ -76,6 +77,55 @@ export class Repository {
       .bind(localDate)
       .all<EntryRow>();
     return result.results ?? [];
+  }
+
+  async getMemoriesForUser(userId: number, limit = 40): Promise<StoredMemory[]> {
+    const result = await this.db
+      .prepare(`
+        SELECT *
+        FROM memories
+        WHERE user_id = ?
+        ORDER BY updated_at_utc DESC
+        LIMIT ?
+      `)
+      .bind(userId, limit)
+      .all<MemoryRow>();
+
+    return result.results ?? [];
+  }
+
+  async upsertMemoryFact(input: MemoryFactInput): Promise<void> {
+    await this.db
+      .prepare(`
+        INSERT INTO memories (
+          user_id, memory_key, category, subject, fact, confidence, source_text,
+          source_message_id, created_at_utc, updated_at_utc, last_observed_at_utc
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, memory_key) DO UPDATE SET
+          category = excluded.category,
+          subject = excluded.subject,
+          fact = excluded.fact,
+          confidence = excluded.confidence,
+          source_text = excluded.source_text,
+          source_message_id = excluded.source_message_id,
+          updated_at_utc = excluded.updated_at_utc,
+          last_observed_at_utc = excluded.last_observed_at_utc
+      `)
+      .bind(
+        input.userId,
+        input.key,
+        input.category,
+        input.subject,
+        input.fact,
+        input.confidence,
+        input.sourceText,
+        input.sourceMessageId,
+        input.nowIso,
+        input.nowIso,
+        input.observedAtUtc
+      )
+      .run();
   }
 
   async reserveNudge(input: Omit<NudgeRecordInput, "telegramMessageId" | "status" | "errorMessage">): Promise<boolean> {
